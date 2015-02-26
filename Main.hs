@@ -76,11 +76,7 @@ htmlEntry :: Entry -> Html
 htmlEntry (Entry word (first:rest) alts) = do
   p (strong (toHtml (word <> ": ")) >> preEscapedToHtml first)
   forM_ rest (p . preEscapedToHtml)
-  ul (htmlAlternatives alts)
-
-htmlAlternatives :: [(Text, Text)] -> Html
-htmlAlternatives alts =
-  forM_ alts htmlAlternative
+  ul (forM_ alts htmlAlternative)
 
 htmlAlternative :: (Text, Text) -> Html
 htmlAlternative (name, desc) = li . p . toHtml $
