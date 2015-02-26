@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Prelude hiding (readFile, takeWhile, null)
+import Prelude hiding (readFile, takeWhile, null, length)
 import Data.Monoid ((<>))
-import Control.Applicative ((*>), (<*), many)
+import Control.Applicative ((*>), (<*), (<$>), many)
 import Control.Monad (forM_, unless)
 import System.Environment (getArgs)
 
-import Data.Text (Text, strip, null)
+import Data.List.Split (splitOn)
+import Data.Text (Text, strip, null, intercalate, length)
 import Data.Text.IO (readFile)
 import qualified Data.Text.Lazy.IO as T
 
@@ -42,33 +43,27 @@ dict = manyTill (skipSpace *> entry <* skipSpace) endOfInput
 
 entry :: Parser Entry
 entry = do
-  word <- normalText <* char '{'
-  def <- sepBy normalText (satisfy (== '\n'))
+  word <- textLine <* char '{'
+  def <- paragraphs
   alts <- many alternative <* char '}'
   skipSpace
-  return (Entry (strip word) (toParagraphs (map strip def) "" []) alts)
-  where
-    toParagraphs [] current all = all ++ [current]
-    toParagraphs (this:next) current all =
-      if null this
-         then toParagraphs next "" (all ++ [current])
-         else toParagraphs next (current <> "\n" <> this) all
+  return (Entry (strip word) def alts)
 
 alternative :: Parser (Text, Text)
 alternative = do
-  name <- char '|' *> normalText <* char '{'
-  desc <- normalText <* char '}'
+  name <- char '|' *> textLine <* char '{' <* skipSpace
+  desc <- paragraphs <* skipSpace <* char '}'
   skipSpace
-  return (strip name, strip desc)
+  return (strip name, intercalate "\n" desc)
 
-normalText :: Parser Text
-normalText = takeWhile (notInClass "{|}\n")
+paragraphs :: Parser [Text]
+paragraphs = toParagraphs . map strip <$> sepBy textLine (char '\n')
+  where
+    toParagraphs = map (intercalate "\n") . filter hasContent . splitOn [""]
+    hasContent group = sum (map length group) > 0
 
-paragraphBreak :: Parser ()
-paragraphBreak = do
-  skip (== '\n')
-  skipWhile (inClass " \t")
-  skip (== '\n')
+textLine :: Parser Text
+textLine = takeWhile (notInClass "{|}\n")
 
 
 

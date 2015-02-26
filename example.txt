@@ -2,6 +2,8 @@ About this {
   This is an example of how the definitions file may look like. It shows
   unicode support, embedding for HTML and stuff. Texts are stolen from
   Wikipedia.
+
+  The output of this run through the tool can be viewed in example.html.
 }
 
 The Bahamas {
@@ -25,9 +27,16 @@ The Bahamas {
 
   See also:
 
-  | Outline of the Bahamas {the outline is provided as an overview of and topical guide to the Bahamas}
-  | Legislative council {the name given to the legislatures, or one of the chambers of the legislature of many nations and colonies.}
-  | Lucayan Archipelago {an archipelago comprising of the Bahamas and the Turks and Caicos Islands}
+  | Outline of the Bahamas {
+      the outline is provided as an overview of and topical guide to the Bahamas
+  }
+  | Legislative council {
+      the name given to the legislatures, or one of the chambers of the
+      legislature of many nations and colonies.
+  }
+  | Lucayan Archipelago {
+      an archipelago comprising of the Bahamas and the Turks and Caicos Islands
+  }
 }
 
 Legislative council {
