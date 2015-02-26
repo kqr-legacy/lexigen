@@ -51,8 +51,8 @@ entry = do
 
 alternative :: Parser (Text, Text)
 alternative = do
-  name <- char '|' *> textLine <* char '{' <* skipSpace
-  desc <- paragraphs <* skipSpace <* char '}'
+  name <- char '|' *> textLine <* char '{'
+  desc <- paragraphs <* char '}'
   skipSpace
   return (strip name, intercalate "\n" desc)
 
