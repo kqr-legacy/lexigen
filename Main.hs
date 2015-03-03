@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Prelude hiding (readFile, takeWhile, null, length)
+import Prelude hiding (readFile, takeWhile, null, length, lines, unlines)
+import Data.Ord (comparing)
+import Data.List (sort, groupBy)
 import Data.Monoid ((<>))
 import Control.Applicative ((*>), (<*), (<$>), many)
 import Control.Monad (forM_, unless)
 import System.Environment (getArgs)
 
-import Data.List.Split (splitOn)
-import Data.Text (Text, strip, null, intercalate, length)
+import Data.Text (Text, strip, null, intercalate, length, lines, unlines, splitOn)
 import Data.Text.IO (readFile)
 import qualified Data.Text.Lazy.IO as T
 
@@ -21,7 +22,7 @@ main = do
   [fn] <- getArgs
   defs <- readFile fn
   case parseOnly dict defs of
-    Right dict -> T.putStrLn (renderHtml (htmlDict dict))
+    Right dict -> T.putStrLn (renderHtml (htmlDict (sort dict)))
     Left err -> putStrLn err
 
 
@@ -29,11 +30,15 @@ main = do
 -- DATA TYPES
 
 data Entry = Entry
-  { word :: Text
-  , definition :: [Text]
-  , alternatives :: [(Text, Text)]
+  { _word :: Text
+  , _definition :: [RefText]
+  , _alternatives :: [(RefText, RefText)]
   } deriving Show
 
+type RefText = [Either Text Text]
+
+instance Eq  Entry where e1 == e2 = _word e1 == _word e2
+instance Ord Entry where compare = comparing _word
 
 
 -- PARSING
@@ -43,28 +48,27 @@ dict = manyTill (skipSpace *> entry <* skipSpace) endOfInput
 
 entry :: Parser Entry
 entry = do
-  word <- textLine <* char '{'
-  def <- paragraphs
-  alts <- many alternative <* char '}'
-  skipSpace
-  return (Entry (strip word) def alts)
+  word <- pureText <* char '{'
+  def <- pureText
+  alts <- many (alternative <* skipSpace) <* char '}'
+  return (Entry (strip word) (splitOn "\n\n" def) alts)
 
 alternative :: Parser (Text, Text)
 alternative = do
-  name <- char '|' *> textLine <* char '{'
-  desc <- paragraphs <* char '}'
-  skipSpace
-  return (strip name, intercalate "\n" desc)
+  name <- char '|' *> pureText <* char '{'
+  desc <- pureText <* char '}'
+  return (strip name, strip desc)
 
-paragraphs :: Parser [Text]
-paragraphs = toParagraphs . map strip <$> sepBy textLine (char '\n')
-  where
-    toParagraphs = map (intercalate "\n") . filter hasContent . splitOn [""]
-    hasContent group = sum (map length group) > 0
+--linkText :: Parser RefText
+--linkText = many (fmap Left link <|> fmap Right pureText)
 
-textLine :: Parser Text
-textLine = takeWhile (notInClass "{|}\n")
+--link :: Parser Text
+--link = string "`{" *> pureText <* char "}"
 
+pureText :: Parser Text
+pureText = fmap cleanedText (takeWhile (notInClass "{`|}"))
+  where cleanedText = unlines . compactLF . map strip . lines
+        compactLF = map (!!0) . groupBy (\a b -> null (a <> b))
 
 
 -- HTML GENERATION
