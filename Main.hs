@@ -31,8 +31,8 @@ main = do
 
 data Entry = Entry
   { _word :: Text
-  , _definition :: [RefText]
-  , _alternatives :: [(RefText, RefText)]
+  , _definition :: [Text]
+  , _alternatives :: [(Text, Text)]
   } deriving Show
 
 type RefText = [Either Text Text]
@@ -48,27 +48,30 @@ dict = manyTill (skipSpace *> entry <* skipSpace) endOfInput
 
 entry :: Parser Entry
 entry = do
-  word <- pureText <* char '{'
-  def <- pureText
+  word <- fmap normalise (pureText <* char '{')
+  def <- fmap (splitOn "\n\n") pureText
   alts <- many (alternative <* skipSpace) <* char '}'
-  return (Entry (strip word) (splitOn "\n\n" def) alts)
+  return (Entry word def alts)
 
 alternative :: Parser (Text, Text)
 alternative = do
   name <- char '|' *> pureText <* char '{'
   desc <- pureText <* char '}'
-  return (strip name, strip desc)
+  return (name, desc)
 
 --linkText :: Parser RefText
 --linkText = many (fmap Left link <|> fmap Right pureText)
 
 --link :: Parser Text
---link = string "`{" *> pureText <* char "}"
+--link = fmap normalise (string "`{" *> pureText <* char '}')
 
 pureText :: Parser Text
 pureText = fmap cleanedText (takeWhile (notInClass "{`|}"))
-  where cleanedText = unlines . compactLF . map strip . lines
+  where cleanedText = strip . unlines . compactLF . map strip . lines
         compactLF = map (!!0) . groupBy (\a b -> null (a <> b))
+
+normalise :: Text -> Text
+normalise = intercalate " " . lines
 
 
 -- HTML GENERATION
