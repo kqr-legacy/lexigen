@@ -53,7 +53,7 @@ dict = skipSpace *> manyTill entry endOfInput
 
 entry :: Parser Entry
 entry = do
-  word <- pureLine <* openBlock
+  word <- pureText <* openBlock
   def <- many paragraph
   alts <- many alternative
   closeBlock
@@ -61,7 +61,7 @@ entry = do
 
 alternative :: Parser (Text, [RefText])
 alternative = do
-  name <- char '|' *> pureLine <* openBlock
+  name <- char '|' *> pureText <* openBlock
   desc <- option [] paragraph
   closeBlock
   return (name, desc)
@@ -77,15 +77,15 @@ paragraph = liftA2 (:) linkText rest <* skipSpace
   where rest = option [] (void (optional (char '\n')) *> paragraph)
 
 linkText :: Parser RefText
-linkText = fmap Reference pureLink <|> fmap Regular pureLine
+linkText = fmap Reference pureLink <|> fmap Regular pureText
 
 pureLink :: Parser Text
 pureLink = do
   takeWhile (\c -> isSpace c && c /= '\n')
-  string "`{" *> pureLine <* char '}'
+  string "`{" *> pureText <* char '}'
 
-pureLine :: Parser Text
-pureLine = do 
+pureText :: Parser Text
+pureText = do 
   text <- fmap strip (takeWhile (notInClass "{`|}\n"))
   if T.null text then fail "empty line" else return text
 
